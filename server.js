@@ -30,7 +30,9 @@ function log(message, level = 'INFO') {
     const timestamp = new Date().toLocaleString('pt-BR');
     const fullMessage = `[${timestamp}] [${level}] ${message}`;
     console.log(fullMessage);
-    fs.appendFileSync(LOG_FILE, fullMessage + '\n');
+    try {
+        fs.appendFileSync(LOG_FILE, fullMessage + '\n');
+    } catch (e) { }
     io.emit('log', fullMessage);
 }
 
@@ -123,6 +125,7 @@ waClient.on('auth_failure', (msg) => {
 
 // --- Lógica de Sincronia ---
 async function verificarPosto(posto) {
+    log(`Iniciando verificação: ${posto.nome}`);
     const pgClient = new PgClient({
         user: posto.user,
         host: posto.host,
@@ -216,6 +219,7 @@ async function verificarPosto(posto) {
                 online: row.online
             }))
         });
+        log(`Sucesso na monitoria: ${posto.nome} (${alertas.length} alertas)`, alertas.length > 0 ? 'WARNING' : 'INFO');
         return { success: true, alertas: alertas.length };
     } catch (e) {
         log(`Erro no posto ${posto.nome}: ${e.message}`, 'ERROR');
@@ -380,6 +384,7 @@ async function executarMonitoriaAgendada() {
         const ultima = ultimasVerificacoes[p.id] || 0;
 
         if (agora - ultima >= freqMs) {
+            log(`Executando monitoria agendada para: ${p.nome}`);
             await verificarPosto(p);
             ultimasVerificacoes[p.id] = agora;
         }
