@@ -20,7 +20,6 @@ const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
 const POSTOS_FILE = path.join(DATA_DIR, 'postos.json');
-const ALERTAS_FILE = path.join(DATA_DIR, 'alertas.json');
 const LOG_FILE = path.join(DATA_DIR, 'app.log');
 
 // Memória temporária para acompanhar últimos alertas e status
@@ -50,15 +49,6 @@ function salvarPostos(postos) {
     fs.writeFileSync(POSTOS_FILE, JSON.stringify(postos, null, 2));
 }
 
-function lerAlertas() {
-    try {
-        if (!fs.existsSync(ALERTAS_FILE)) return [];
-        const data = fs.readFileSync(ALERTAS_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (e) {
-        return [];
-    }
-}
 
 // --- Estabilização Docker Chromium ---
 function limparLocksChromium(dir) {
@@ -207,6 +197,8 @@ async function verificarPosto(posto) {
                 const msg = `🚨 *${posto.nome.toUpperCase()}*\nUltima Sincronia em:\n\n${alertasMsg.join('\n')}`;
 
                 const numbers = posto.alertas || [];
+                log(`[WA-SEND] ${posto.nome}: Enviando para ${numbers.length} destinatários específicos: ${numbers.join(', ')}`);
+
                 for (const n of numbers) {
                     let num = n.replace(/\D/g, ''); // Limpa tudo que não é número
                     if (!num) continue;
