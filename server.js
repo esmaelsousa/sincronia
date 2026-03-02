@@ -195,8 +195,10 @@ async function verificarPosto(posto) {
                     let num = n.replace(/\D/g, ''); // Limpa tudo que não é número
                     if (!num) continue;
 
-                    // Garantir 55 no início para BR
-                    if (num.length >= 10 && !num.startsWith('55')) num = '55' + num;
+                    // Adição automática de 55 para DDDs brasileiros (10 ou 11 dígitos)
+                    if (num.length >= 10 && num.length <= 11 && !num.startsWith('55')) {
+                        num = '55' + num;
+                    }
 
                     try {
                         const contactId = await waClient.getNumberId(num);
@@ -297,10 +299,10 @@ app.get('/api/alertas', (req, res) => res.json(lerAlertas()));
 app.post('/api/alertas', (req, res) => {
     const { numero } = req.body;
     let alertas = lerAlertas();
-    let num = numero.replace(/\D/g, ''); // Limpa caracteres como (), -, espaço
+    let num = numero.replace(/\D/g, '');
 
-    // Garantir padrão brasileiro 55... no cadastro
-    if (num.length >= 10 && !num.startsWith('55')) {
+    // Se o usuário digitou DDD + número (10 ou 11 dígitos), coloca o 55
+    if (num.length >= 10 && num.length <= 11) {
         num = '55' + num;
     }
 
@@ -335,7 +337,7 @@ app.post('/api/wa/send-test', async (req, res) => {
     if (!waReady) return res.status(400).json({ error: 'WhatsApp não está conectado' });
 
     let num = numero.replace(/\D/g, '');
-    if (num.length >= 10 && !num.startsWith('55')) {
+    if (num.length >= 10 && num.length <= 11) {
         num = '55' + num;
     }
 

@@ -329,6 +329,17 @@ async function removerPosto(id) {
 }
 
 // --- Alertas Management ---
+function MascaraBR(num) {
+    let n = num.replace(/\D/g, '');
+    if (n.startsWith('55')) n = n.substring(2);
+    if (n.length === 11) {
+        return `(${n.substring(0, 2)}) ${n.substring(2, 7)}-${n.substring(7)}`;
+    } else if (n.length === 10) {
+        return `(${n.substring(0, 2)}) ${n.substring(2, 6)}-${n.substring(6)}`;
+    }
+    return num;
+}
+
 async function carregarAlertas() {
     try {
         const res = await fetch('/api/alertas');
@@ -349,7 +360,7 @@ function renderAlertas(alertas) {
         const div = document.createElement('div');
         div.className = 'alert-item';
         div.innerHTML = `
-            <span>${num}</span>
+            <span>${MascaraBR(num)}</span>
             <div style="display: flex; gap: 0.8rem;">
                 <button onclick="enviarTeste('${num}')" title="Enviar Mensagem de Teste" style="background: none; color: #6366f1; cursor: pointer; padding: 0; font-size: 0.9rem;">🚀</button>
                 <button onclick="removerAlerta('${num}')" title="Remover" style="background: none; color: #fb7185; cursor: pointer; padding: 0; font-size: 1.1rem;">&times;</button>
