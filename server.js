@@ -136,7 +136,8 @@ async function verificarPosto(posto) {
 
             if (estaAtrasado) {
                 const tempoAtraso = Math.floor(diffMs / 60000);
-                alertas.push(`*${row.nome || 'Host'}*: Atraso ${atraso.toLocaleString()} | Sincronia: ${tsDate.toLocaleString('pt-BR')} (${tempoAtraso} min atrás)`);
+                const formatado = tsDate.toLocaleString('pt-BR').replace(',', ' as');
+                alertas.push(`${formatado}`);
             }
 
             // Para o dashboard, marcamos como offline se passar do limite
@@ -150,18 +151,22 @@ async function verificarPosto(posto) {
             const freqMs = (parseInt(posto.frequencia, 10) || 5) * 60 * 1000;
 
             if (agora - memorialPosto.ultimoAlerta >= freqMs) {
-                const timestampMsg = new Date().toLocaleString('pt-BR');
-                const msg = `🚨 *ALERTA DE SINCRONIA: ${posto.nome}* 🚨\n\n${alertas.join('\n')}\n\n_Verificado em: ${timestampMsg}_`;
+                // Formato simples: POSTO XX: Sincronia: DD/MM as HH:MM
+                const msg = `🚨 *${posto.nome.toUpperCase()}*: Sincronia em ${alertas.join(' | ')}`;
 
                 const numbers = lerAlertas();
                 for (const n of numbers) {
-                    if (n.trim()) {
-                        try {
-                            const formattedNum = n.trim().includes('@c.us') ? n.trim() : `${n.trim()}@c.us`;
-                            await waClient.sendMessage(formattedNum, msg);
-                        } catch (err) {
-                            log(`Erro ao enviar alerta para ${n}: ${err.message}`, 'ERROR');
-                        }
+                    let num = n.trim();
+                    if (!num) continue;
+
+                    // Garantir 55 no início para BR
+                    if (num.length >= 10 && !num.startsWith('55')) num = '55' + num;
+
+                    try {
+                        const formattedNum = num.includes('@c.us') ? num : `${num}@c.us`;
+                        await waClient.sendMessage(formattedNum, msg);
+                    } catch (err) {
+                        log(`Erro ao enviar alerta para ${n}: ${err.message}`, 'ERROR');
                     }
                 }
                 memorialPosto.ultimoAlerta = agora;
@@ -254,8 +259,14 @@ app.get('/api/alertas', (req, res) => res.json(lerAlertas()));
 app.post('/api/alertas', (req, res) => {
     const { numero } = req.body;
     let alertas = lerAlertas();
-    if (!alertas.includes(numero)) {
-        alertas.push(numero);
+    let num = numero.trim();
+    // Garantir padrão brasileiro 55... no cadastro
+    if (num.length >= 10 && !num.startsWith('55')) {
+        num = '55' + num;
+    }
+
+    if (!alertas.includes(num)) {
+        alertas.push(num);
         salvarAlertas(alertas);
     }
     res.json({ success: true, alertas });
@@ -274,6 +285,24 @@ app.post('/api/wa/disconnect', async (req, res) => {
         waReady = false;
         qrCodeData = null;
         io.emit('wa_status', { ready: false });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/wa/send-test', async (req, res) => {
+    const { numero } = req.body;
+    if (!waReady) return res.status(400).json({ error: 'WhatsApp não está conectado' });
+
+    let num = numero.trim();
+    if (num.length >= 10 && !num.startsWith('55')) {
+        num = '55' + num;
+    }
+    const formattedNum = num.includes('@c.us') ? num : `${num}@c.us`;
+
+    try {
+        await waClient.sendMessage(formattedNum, '✅ *Teste de Conexão Sinc Autosystem*\nSeu sistema de monitoria está configurado corretamente.');
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });

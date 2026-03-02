@@ -350,10 +350,31 @@ function renderAlertas(alertas) {
         div.className = 'alert-item';
         div.innerHTML = `
             <span>${num}</span>
-            <button onclick="removerAlerta('${num}')" style="background: none; color: #fb7185; cursor: pointer; padding: 0;">&times;</button>
+            <div style="display: flex; gap: 0.8rem;">
+                <button onclick="enviarTeste('${num}')" title="Enviar Mensagem de Teste" style="background: none; color: #6366f1; cursor: pointer; padding: 0; font-size: 0.9rem;">🚀</button>
+                <button onclick="removerAlerta('${num}')" title="Remover" style="background: none; color: #fb7185; cursor: pointer; padding: 0; font-size: 1.1rem;">&times;</button>
+            </div>
         `;
         alertasList.appendChild(div);
     });
+}
+
+async function enviarTeste(numero) {
+    try {
+        const res = await fetch('/api/wa/send-test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ numero })
+        });
+        if (res.ok) {
+            alert(`✅ Teste enviado para ${numero}! Verifique seu WhatsApp.`);
+        } else {
+            const data = await res.json();
+            alert(`❌ Erro ao enviar teste: ${data.error || 'WhatsApp desconectado'}`);
+        }
+    } catch (e) {
+        alert('❌ Erro de rede ao tentar enviar teste.');
+    }
 }
 
 if (alertaForm) {
@@ -396,11 +417,16 @@ socket.on('status_posto', (data) => {
     if (checkText) checkText.textContent = 'visto ' + data.lastCheck.split(',')[1].trim();
 
     if (sincText && data.hosts && data.hosts.length > 0) {
-        // Encontrar o host mais atrasado para o dashboard principal
+        // Obter o timestamp mais recente entre todos os hosts do posto
         const timestamps = data.hosts.map(h => new Date(h.ts).getTime());
         const lastSyncTime = new Date(Math.max(...timestamps));
+
+        // Exibir no formato HH:MM:SS para mostrar que o relógio está "vivo"
         sincText.textContent = lastSyncTime.toLocaleTimeString('pt-BR');
         sincText.className = 'sincronia-time' + (data.status === 'atrasado' ? ' atrasado' : '');
+
+        // Bug do horário "travado": forçar atualização de visibilidade
+        sincText.style.opacity = '1';
     }
 
     if (alertText && data.ultimoAlerta) {
