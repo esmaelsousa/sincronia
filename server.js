@@ -137,6 +137,8 @@ async function verificarPosto(posto) {
 
     try {
         await pgClient.connect();
+        await pgClient.query("SET client_encoding TO 'LATIN1';");
+
         const QUERY_SYNC = `
             SELECT 
                 (select nome_reduzido from pessoa where grid=h.pessoa) as nome, 
@@ -264,6 +266,7 @@ app.post('/api/test-connection', async (req, res) => {
 
     try {
         await pgClient.connect();
+        await pgClient.query("SET client_encoding TO 'LATIN1';");
         await pgClient.end();
         res.json({ success: true });
     } catch (e) {
