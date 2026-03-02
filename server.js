@@ -165,7 +165,7 @@ async function verificarPosto(posto) {
             if (estaAtrasado) {
                 const tempoAtraso = Math.floor(diffMs / 60000);
                 const formatado = tsDate.toLocaleString('pt-BR').replace(',', ' as');
-                alertas.push(`${formatado}`);
+                alertas.push(`${row.nome || 'Terminal'}: ${formatado}`);
             }
 
             // Para o dashboard, marcamos como offline se passar do limite
@@ -184,14 +184,15 @@ async function verificarPosto(posto) {
 
                 const numbers = lerAlertas();
                 for (const n of numbers) {
-                    let num = n.trim();
+                    let num = n.replace(/\D/g, ''); // Limpa tudo que não é número
                     if (!num) continue;
 
                     // Garantir 55 no início para BR
                     if (num.length >= 10 && !num.startsWith('55')) num = '55' + num;
 
                     try {
-                        const formattedNum = num.includes('@c.us') ? num : `${num}@c.us`;
+                        const contactId = await waClient.getNumberId(num);
+                        const formattedNum = contactId ? contactId._serialized : `${num}@c.us`;
                         await waClient.sendMessage(formattedNum, msg);
                     } catch (err) {
                         log(`Erro ao enviar alerta para ${n}: ${err.message}`, 'ERROR');
@@ -287,13 +288,14 @@ app.get('/api/alertas', (req, res) => res.json(lerAlertas()));
 app.post('/api/alertas', (req, res) => {
     const { numero } = req.body;
     let alertas = lerAlertas();
-    let num = numero.trim();
+    let num = numero.replace(/\D/g, ''); // Limpa caracteres como (), -, espaço
+
     // Garantir padrão brasileiro 55... no cadastro
     if (num.length >= 10 && !num.startsWith('55')) {
         num = '55' + num;
     }
 
-    if (!alertas.includes(num)) {
+    if (num && !alertas.includes(num)) {
         alertas.push(num);
         salvarAlertas(alertas);
     }
@@ -323,14 +325,16 @@ app.post('/api/wa/send-test', async (req, res) => {
     const { numero } = req.body;
     if (!waReady) return res.status(400).json({ error: 'WhatsApp não está conectado' });
 
-    let num = numero.trim();
+    let num = numero.replace(/\D/g, '');
     if (num.length >= 10 && !num.startsWith('55')) {
         num = '55' + num;
     }
-    const formattedNum = num.includes('@c.us') ? num : `${num}@c.us`;
 
     try {
-        await waClient.sendMessage(formattedNum, '✅ *Teste de Conexão Sinc Autosystem*\nSeu sistema de monitoria está configurado corretamente.');
+        const contactId = await waClient.getNumberId(num);
+        if (!contactId) return res.status(404).json({ error: 'Número não encontrado no WhatsApp' });
+
+        await waClient.sendMessage(contactId._serialized, '✅ *Teste de Conexão Sinc Autosystem*\nSeu sistema de monitoria está configurado corretamente.');
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
