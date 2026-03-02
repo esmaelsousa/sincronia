@@ -155,8 +155,8 @@ async function verificarPosto(posto) {
         const limiteGFID = parseInt(posto.alerta_gfid, 10) || 50000;
         const limiteTempoMs = limiteTempoMin * 60 * 1000;
 
-        let alertas = [];
-        let hostMaisAtrasado = null;
+        let alertasMsg = [];
+        let temAtraso = false;
 
         for (const row of res.rows) {
             const atraso = Number(row.atraso);
@@ -165,25 +165,23 @@ async function verificarPosto(posto) {
 
             const estaAtrasado = atraso > limiteGFID || diffMs > limiteTempoMs;
 
-            if (estaAtrasado) {
-                const tempoAtraso = Math.floor(diffMs / 60000);
-                const formatado = tsDate.toLocaleString('pt-BR').replace(',', ' as');
-                alertas.push(`${row.nome || 'Terminal'}: ${formatado}`);
-            }
+            const icon = estaAtrasado ? '🔴' : '🟢';
+            const formatado = tsDate.toLocaleTimeString('pt-BR');
+            alertasMsg.push(`${icon} *${row.nome || 'Terminal'}*: ${formatado}`);
 
-            // Para o dashboard, marcamos como offline se passar do limite
+            if (estaAtrasado) temAtraso = true;
             row.online = !estaAtrasado;
         }
 
-        if (alertas.length > 0 && waReady) {
+        if (temAtraso && waReady) {
             // Controle de envio de mensagens para não floodar (máximo 1 alerta por frequência configurada)
             const agora = Date.now();
             const memorialPosto = statusMemoria[posto.id] || { ultimoAlerta: 0 };
             const freqMs = (parseInt(posto.frequencia, 10) || 5) * 60 * 1000;
 
             if (agora - memorialPosto.ultimoAlerta >= freqMs) {
-                // Formato simples: POSTO XX: Sincronia: DD/MM as HH:MM
-                const msg = `🚨 *${posto.nome.toUpperCase()}*: Sincronia em ${alertas.join(' | ')}`;
+                // Formato organizado: Uma linha por terminal com bolinha
+                const msg = `🚨 *ALERTA: ${posto.nome.toUpperCase()}*\n\n${alertasMsg.join('\n')}`;
 
                 const numbers = lerAlertas();
                 for (const n of numbers) {
@@ -209,7 +207,7 @@ async function verificarPosto(posto) {
 
         io.emit('status_posto', {
             id: posto.id,
-            status: alertas.length > 0 ? 'atrasado' : 'ok',
+            status: temAtraso ? 'atrasado' : 'ok',
             lastCheck: new Date().toLocaleString('pt-BR'),
             ultimoAlerta: statusMemoria[posto.id]?.ultimoAlertaString || null,
             hosts: res.rows.map(row => ({
@@ -219,8 +217,8 @@ async function verificarPosto(posto) {
                 online: row.online
             }))
         });
-        log(`Sucesso na monitoria: ${posto.nome} (${alertas.length} alertas)`, alertas.length > 0 ? 'WARNING' : 'INFO');
-        return { success: true, alertas: alertas.length };
+        log(`Sucesso na monitoria: ${posto.nome} (${temAtraso ? 'ATRASADO' : 'OK'})`, temAtraso ? 'WARNING' : 'INFO');
+        return { success: true, alertas: temAtraso ? 1 : 0 };
     } catch (e) {
         log(`Erro no posto ${posto.nome}: ${e.message}`, 'ERROR');
         io.emit('status_posto', { id: posto.id, status: 'erro', error: e.message });
