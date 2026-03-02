@@ -166,8 +166,9 @@ async function verificarPosto(posto) {
             const estaAtrasado = atraso > limiteGFID || diffMs > limiteTempoMs;
 
             const icon = estaAtrasado ? '🔴' : '🟢';
-            const dataHora = tsDate.toLocaleString('pt-BR').replace(',', ' as');
-            alertasMsg.push(`${icon} *${row.nome || 'Terminal'}*: ${dataHora}`);
+            const dataHora = tsDate.toLocaleString('pt-BR');
+            const atrasoNum = Number(row.atraso).toLocaleString('pt-BR');
+            alertasMsg.push(`${icon} *${(row.nome || 'Terminal').toUpperCase()}* | Atraso: ${atrasoNum} | Data: ${dataHora} .-`);
 
             if (estaAtrasado) temAtraso = true;
             row.online = !estaAtrasado;
