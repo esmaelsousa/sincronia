@@ -329,11 +329,25 @@ server.listen(PORT, async () => {
     }
 });
 
-// Cron para verificar todos os postos a cada 5 minutos, 24h por dia
-cron.schedule('*/5 * * * *', async () => {
+// Registro de última verificação para controle de frequência
+const ultimasVerificacoes = {};
+
+// Função de monitoramento com controle de frequência individual
+async function executarMonitoriaAgendada() {
     const postos = lerPostos();
-    log(`Iniciando verificação agendada para ${postos.length} postos.`);
+    const agora = Date.now();
+
     for (const p of postos) {
-        await verificarPosto(p);
+        const freqMs = (parseInt(p.frequencia, 10) || 5) * 60 * 1000;
+        const ultima = ultimasVerificacoes[p.id] || 0;
+
+        if (agora - ultima >= freqMs) {
+            log(`Iniciando verificação para ${p.nome} (Frequência: ${p.frequencia}min)`);
+            await verificarPosto(p);
+            ultimasVerificacoes[p.id] = agora;
+        }
     }
-});
+}
+
+// Cron a cada 1 minuto para checar quem precisa ser verificado
+cron.schedule('* * * * *', executarMonitoriaAgendada);

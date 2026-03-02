@@ -84,37 +84,29 @@ socket.on('log', (msg) => {
 const loginOverlay = document.getElementById('login-overlay');
 const loginForm = document.getElementById('login-form');
 
+if (res.ok) {
+    const data = await res.json();
+    localStorage.setItem('sinc_token', data.token);
+    loginOverlay.style.display = 'none';
+    document.querySelector('.container').style.display = 'block'; // Mostra o conteúdo
+    carregarPostos();
+    carregarAlertas();
+} else {
+    alert('❌ Credenciais incorretas!');
+}
+};
+
 function checkAuth() {
     const token = localStorage.getItem('sinc_token');
     if (token) {
         loginOverlay.style.display = 'none';
+        document.querySelector('.container').style.display = 'block';
         socket.emit('auth', token);
     } else {
         loginOverlay.style.display = 'flex';
+        document.querySelector('.container').style.display = 'none';
     }
 }
-
-loginForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const user = document.getElementById('login-user').value;
-    const pass = document.getElementById('login-pass').value;
-
-    const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, pass })
-    });
-
-    if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('sinc_token', data.token);
-        loginOverlay.style.display = 'none';
-        carregarPostos();
-        carregarAlertas();
-    } else {
-        alert('❌ Credenciais incorretas!');
-    }
-};
 
 // --- Modal Config ---
 const configModal = document.getElementById('config-modal');
@@ -205,6 +197,7 @@ function prepararEdicao(id) {
                 document.getElementById('user').value = p.user;
                 document.getElementById('password').value = p.password;
                 document.getElementById('database').value = p.database;
+                document.getElementById('frequencia').value = p.frequencia || "5";
                 editandoId = id;
             }
         });
