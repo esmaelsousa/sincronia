@@ -231,6 +231,8 @@ function prepararEdicao(id) {
                 document.getElementById('alerta_gfid').value = p.alerta_gfid || "50000";
                 document.getElementById('alerta_inicio').value = p.alerta_inicio || "07:00";
                 document.getElementById('alerta_fim').value = p.alerta_fim || "22:00";
+                numerosAtuaisPosto = p.alertas || [];
+                atualizarListaNumerosModal();
                 editandoId = id;
             }
         });
@@ -239,6 +241,8 @@ function prepararEdicao(id) {
 function cancelarEdicao() {
     editandoId = null;
     postoForm.reset();
+    numerosAtuaisPosto = [];
+    atualizarListaNumerosModal();
 }
 
 if (postoForm) {
@@ -261,6 +265,7 @@ if (postoForm) {
             alerta_gfid: document.getElementById('alerta_gfid').value,
             alerta_inicio: document.getElementById('alerta_inicio').value,
             alerta_fim: document.getElementById('alerta_fim').value,
+            alertas: numerosAtuaisPosto || []
         };
 
         try {
