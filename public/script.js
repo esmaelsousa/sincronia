@@ -198,9 +198,14 @@ function renderPostos(postos) {
                 <!-- Hosts individuais aqui -->
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: auto;">
-                <button onclick="abrirModal('${p.id}')" class="secondary" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">⚙️ EDITAR</button>
-                <button onclick="removerPosto('${p.id}')" class="danger" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">REMOVER</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div id="last-alert-${p.id}" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8;">
+                    🔔 Sem alertas hoje
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="abrirModal('${p.id}')" class="secondary" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">⚙️ EDITAR</button>
+                    <button onclick="removerPosto('${p.id}')" class="danger" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">REMOVER</button>
+                </div>
             </div>
         `;
         postosGrid.appendChild(div);
@@ -222,6 +227,8 @@ function prepararEdicao(id) {
                 document.getElementById('password').value = p.password;
                 document.getElementById('database').value = p.database;
                 document.getElementById('frequencia').value = p.frequencia || "5";
+                document.getElementById('alerta_tempo').value = p.alerta_tempo || "60";
+                document.getElementById('alerta_gfid').value = p.alerta_gfid || "50000";
                 editandoId = id;
             }
         });
@@ -248,6 +255,8 @@ if (postoForm) {
             password: document.getElementById('password').value,
             database: document.getElementById('database').value,
             frequencia: document.getElementById('frequencia').value,
+            alerta_tempo: document.getElementById('alerta_tempo').value,
+            alerta_gfid: document.getElementById('alerta_gfid').value,
         };
 
         try {
@@ -382,14 +391,20 @@ socket.on('status_posto', (data) => {
     const checkText = document.getElementById(`check-${data.id}`);
     const sincText = document.getElementById(`sinc-${data.id}`);
     const hostsList = document.getElementById(`hosts-${data.id}`);
+    const alertText = document.getElementById(`last-alert-${data.id}`);
 
     if (checkText) checkText.textContent = 'visto ' + data.lastCheck.split(',')[1].trim();
 
     if (sincText && data.hosts && data.hosts.length > 0) {
+        // Encontrar o host mais atrasado para o dashboard principal
         const timestamps = data.hosts.map(h => new Date(h.ts).getTime());
         const lastSyncTime = new Date(Math.max(...timestamps));
         sincText.textContent = lastSyncTime.toLocaleTimeString('pt-BR');
         sincText.className = 'sincronia-time' + (data.status === 'atrasado' ? ' atrasado' : '');
+    }
+
+    if (alertText && data.ultimoAlerta) {
+        alertText.textContent = `🔔 Último alerta: ${data.ultimoAlerta}`;
     }
 
     if (hostsList && data.hosts) {
@@ -397,7 +412,7 @@ socket.on('status_posto', (data) => {
             <div class="host-item">
                 <div class="host-info">
                     <span class="name">${h.nome}</span>
-                    <span class="atraso">Atraso: ${h.atraso}</span>
+                    <span class="atraso">Atraso: ${h.atraso.toLocaleString()}</span>
                 </div>
                 <span class="status-dot ${h.online ? 'online' : 'offline'}"></span>
             </div>

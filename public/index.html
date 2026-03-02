@@ -46,13 +46,25 @@
                     <input type="password" id="password" placeholder="Senha do Banco" required>
                     <input type="text" id="database" placeholder="Nome do Banco de Dados" required>
                     <div class="grid" style="grid-template-columns: 1fr;">
-                        <select id="frequencia" class="custom-select" required>
+                        <select id="frequencia" class="custom-select" required title="Frequência de Monitoria">
                             <option value="1">Verificar a cada 1 minuto</option>
                             <option value="5" selected>Verificar a cada 5 minutos</option>
                             <option value="10">Verificar a cada 10 minutos</option>
                             <option value="30">Verificar a cada 30 minutos</option>
                             <option value="60">Verificar a cada 1 hora</option>
                         </select>
+                    </div>
+                    <div class="grid">
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                            <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Alerta após
+                                (minutos)</label>
+                            <input type="number" id="alerta_tempo" placeholder="Tempo (min)" value="60" required>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                            <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Limite GFID
+                                (Atraso)</label>
+                            <input type="number" id="alerta_gfid" placeholder="GFID" value="50000" required>
+                        </div>
                     </div>
                     <div class="actions" style="margin-top: 2rem;">
                         <button type="button" id="btn-test" class="secondary">TESTAR CONEXÃO</button>

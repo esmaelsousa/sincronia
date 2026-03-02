@@ -23,6 +23,9 @@ const POSTOS_FILE = path.join(DATA_DIR, 'postos.json');
 const ALERTAS_FILE = path.join(DATA_DIR, 'alertas.json');
 const LOG_FILE = path.join(DATA_DIR, 'app.log');
 
+// Memória temporária para acompanhar últimos alertas e status
+const statusMemoria = {};
+
 function log(message, level = 'INFO') {
     const timestamp = new Date().toLocaleString('pt-BR');
     const fullMessage = `[${timestamp}] [${level}] ${message}`;
@@ -61,7 +64,7 @@ function salvarAlertas(alertas) {
 
 // --- WhatsApp Client ---
 const waClient = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({ dataPath: path.join(DATA_DIR, 'session') }),
     puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
         headless: true,
@@ -116,26 +119,54 @@ async function verificarPosto(posto) {
         const res = await pgClient.query(QUERY_SYNC);
         const dataAtual = new Date();
 
+        // Parâmetros configuráveis
+        const limiteTempoMin = parseInt(posto.alerta_tempo, 10) || 60;
+        const limiteGFID = parseInt(posto.alerta_gfid, 10) || 50000;
+        const limiteTempoMs = limiteTempoMin * 60 * 1000;
+
         let alertas = [];
+        let hostMaisAtrasado = null;
+
         for (const row of res.rows) {
             const atraso = Number(row.atraso);
-            const diffMs = dataAtual - new Date(row.ts);
-            if (atraso > 50000 || diffMs > 3600000) {
-                alertas.push(`*${row.nome || 'Host'}*: Atraso ${atraso} | Tempo ${Math.floor(diffMs / 60000)}min`);
+            const tsDate = new Date(row.ts);
+            const diffMs = dataAtual - tsDate;
+
+            const estaAtrasado = atraso > limiteGFID || diffMs > limiteTempoMs;
+
+            if (estaAtrasado) {
+                const tempoAtraso = Math.floor(diffMs / 60000);
+                alertas.push(`*${row.nome || 'Host'}*: Atraso ${atraso.toLocaleString()} | Sincronia: ${tsDate.toLocaleString('pt-BR')} (${tempoAtraso} min atrás)`);
             }
+
+            // Para o dashboard, marcamos como offline se passar do limite
+            row.online = !estaAtrasado;
         }
 
         if (alertas.length > 0 && waReady) {
-            const msg = `🚨 *ALERTA: ${posto.nome}* 🚨\n\n${alertas.join('\n')}`;
-            const numbers = lerAlertas();
-            for (const n of numbers) {
-                if (n.trim()) {
-                    try {
-                        await waClient.sendMessage(n.trim(), msg);
-                    } catch (err) {
-                        log(`Erro ao enviar alerta para ${n}: ${err.message}`, 'ERROR');
+            // Controle de envio de mensagens para não floodar (máximo 1 alerta por frequência configurada)
+            const agora = Date.now();
+            const memorialPosto = statusMemoria[posto.id] || { ultimoAlerta: 0 };
+            const freqMs = (parseInt(posto.frequencia, 10) || 5) * 60 * 1000;
+
+            if (agora - memorialPosto.ultimoAlerta >= freqMs) {
+                const timestampMsg = new Date().toLocaleString('pt-BR');
+                const msg = `🚨 *ALERTA DE SINCRONIA: ${posto.nome}* 🚨\n\n${alertas.join('\n')}\n\n_Verificado em: ${timestampMsg}_`;
+
+                const numbers = lerAlertas();
+                for (const n of numbers) {
+                    if (n.trim()) {
+                        try {
+                            const formattedNum = n.trim().includes('@c.us') ? n.trim() : `${n.trim()}@c.us`;
+                            await waClient.sendMessage(formattedNum, msg);
+                        } catch (err) {
+                            log(`Erro ao enviar alerta para ${n}: ${err.message}`, 'ERROR');
+                        }
                     }
                 }
+                memorialPosto.ultimoAlerta = agora;
+                memorialPosto.ultimoAlertaString = new Date().toLocaleTimeString('pt-BR');
+                statusMemoria[posto.id] = memorialPosto;
             }
         }
 
@@ -143,11 +174,12 @@ async function verificarPosto(posto) {
             id: posto.id,
             status: alertas.length > 0 ? 'atrasado' : 'ok',
             lastCheck: new Date().toLocaleString('pt-BR'),
+            ultimoAlerta: statusMemoria[posto.id]?.ultimoAlertaString || null,
             hosts: res.rows.map(row => ({
                 nome: row.nome || 'Host',
                 ts: row.ts,
                 atraso: row.atraso,
-                online: (Number(row.atraso) <= 50000 && (dataAtual - new Date(row.ts)) <= 3600000)
+                online: row.online
             }))
         });
         return { success: true, alertas: alertas.length };
@@ -165,40 +197,18 @@ app.get('/api/postos', (req, res) => res.json(lerPostos()));
 
 app.post('/api/test-connection', async (req, res) => {
     const { user, host, database, password, port } = req.body;
-
-    const dbConfig = {
-        user: user,
-        host: host,
-        database: database,
-        password: password,
+    const pgClient = new PgClient({
+        user, host, database, password,
         port: parseInt(port, 10),
         connectionTimeoutMillis: 5000
-    };
-
-    const pgClient = new PgClient(dbConfig);
+    });
 
     try {
-        log(`Testando conexão para: ${host}:${port || 5432} (Banco: ${database}, Usuário: ${user})`);
         await pgClient.connect();
         await pgClient.end();
         res.json({ success: true });
     } catch (e) {
-        log(`Erro detalhado no teste de conexão: ${e.message} (Código: ${e.code})`, 'ERROR');
-
-        let userMessage = e.message;
-
-        // Identificação de erros comuns do PostgreSQL
-        if (e.code === '28P01' || e.message.includes('password authentication')) {
-            userMessage = '❌ Senha ou Usuário incorretos.';
-        } else if (e.code === 'ENOTFOUND' || e.code === 'ECONNREFUSED' || e.message.includes('getaddrinfo')) {
-            userMessage = '❌ Host ou Porta inacessíveis. Verifique o endereço do servidor.';
-        } else if (e.code === '3D000' || (e.message.includes('database') && e.message.includes('does not exist'))) {
-            userMessage = '❌ O Banco de Dados especificado não existe.';
-        } else if (e.message.includes('timeout')) {
-            userMessage = '❌ Tempo limite esgotado. Verifique se o host e porta estão corretos e se há firewall bloqueando.';
-        }
-
-        res.status(500).json({ success: false, error: userMessage });
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
@@ -228,15 +238,12 @@ app.delete('/api/postos/:id', (req, res) => {
 });
 
 // --- Segurança ---
-const CREDENTIALS = {
-    user: 'office',
-    pass: '@Office820439La'
-};
-
+const CREDENTIALS = { user: 'office', pass: '@Office820439La' };
 app.post('/api/login', (req, res) => {
     const { user, pass } = req.body;
     if (user === CREDENTIALS.user && pass === CREDENTIALS.pass) {
-        res.json({ success: true, token: Buffer.from(`${user}:${pass}`).toString('base64') });
+        const token = Buffer.from(`${user}:${pass}`).toString('base64');
+        res.json({ success: true, token });
     } else {
         res.status(401).json({ success: false, error: 'Credenciais inválidas' });
     }
@@ -244,11 +251,8 @@ app.post('/api/login', (req, res) => {
 
 // --- Endpoints Alertas ---
 app.get('/api/alertas', (req, res) => res.json(lerAlertas()));
-
 app.post('/api/alertas', (req, res) => {
     const { numero } = req.body;
-    if (!numero) return res.status(400).json({ error: 'Número é obrigatório' });
-
     let alertas = lerAlertas();
     if (!alertas.includes(numero)) {
         alertas.push(numero);
@@ -256,11 +260,9 @@ app.post('/api/alertas', (req, res) => {
     }
     res.json({ success: true, alertas });
 });
-
 app.delete('/api/alertas', (req, res) => {
     const { numero } = req.body;
-    let alertas = lerAlertas();
-    alertas = alertas.filter(n => n !== numero);
+    let alertas = lerAlertas().filter(n => n !== numero);
     salvarAlertas(alertas);
     res.json({ success: true, alertas });
 });
@@ -268,30 +270,24 @@ app.delete('/api/alertas', (req, res) => {
 // --- Endpoints WhatsApp Control ---
 app.post('/api/wa/disconnect', async (req, res) => {
     try {
-        log('Solicitação de desconexão do WhatsApp recebida.');
         await waClient.logout();
         waReady = false;
         qrCodeData = null;
         io.emit('wa_status', { ready: false });
         res.json({ success: true });
     } catch (e) {
-        log(`Erro ao desconectar WhatsApp: ${e.message}`, 'ERROR');
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
 app.post('/api/wa/reset', async (req, res) => {
     try {
-        log('Solicitação de reset/novo QR Code recebida.');
-        // Para forçar um novo QR Code sem necessariamente dar logout (caso esteja preso)
-        // O ideal é destruir e reinicializar se estiver falhando
         await waClient.destroy();
         waReady = false;
         qrCodeData = null;
         await waClient.initialize();
         res.json({ success: true });
     } catch (e) {
-        log(`Erro ao resetar WhatsApp: ${e.message}`, 'ERROR');
         res.status(500).json({ success: false, error: e.message });
     }
 });
@@ -300,39 +296,20 @@ app.post('/api/wa/reset', async (req, res) => {
 io.on('connection', (socket) => {
     if (qrCodeData) socket.emit('qr', qrCodeData);
     if (waReady) socket.emit('wa_status', { ready: true, number: waClient.info?.wid?.user });
-
-    const postos = lerPostos();
-    socket.emit('postos', postos);
-
-    // Disparar verificação imediata para atualizar o dashboard do novo usuário conectado
-    postos.forEach(p => verificarPosto(p));
+    socket.emit('postos', lerPostos());
 });
 
 server.listen(PORT, async () => {
     log(`Servidor rodando na porta ${PORT}`);
     waClient.initialize();
 
-    waClient.on('disconnected', (reason) => {
-        log(`WhatsApp desconectado: ${reason}`);
-        waReady = false;
-        qrCodeData = null;
-        io.emit('wa_status', { ready: false });
-    });
-
-    // Verificação inicial de todos os postos ao subir o servidor
+    // Verificação inicial
     const postos = lerPostos();
-    if (postos.length > 0) {
-        log(`Executando verificação inicial para ${postos.length} postos...`);
-        for (const p of postos) {
-            verificarPosto(p); // Rodar em background (sem await para não travar o boot)
-        }
-    }
+    for (const p of postos) verificarPosto(p);
 });
 
-// Registro de última verificação para controle de frequência
+// Monitoria agendada
 const ultimasVerificacoes = {};
-
-// Função de monitoramento com controle de frequência individual
 async function executarMonitoriaAgendada() {
     const postos = lerPostos();
     const agora = Date.now();
@@ -342,12 +319,10 @@ async function executarMonitoriaAgendada() {
         const ultima = ultimasVerificacoes[p.id] || 0;
 
         if (agora - ultima >= freqMs) {
-            log(`Iniciando verificação para ${p.nome} (Frequência: ${p.frequencia}min)`);
             await verificarPosto(p);
             ultimasVerificacoes[p.id] = agora;
         }
     }
 }
 
-// Cron a cada 1 minuto para checar quem precisa ser verificado
 cron.schedule('* * * * *', executarMonitoriaAgendada);
