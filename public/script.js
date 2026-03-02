@@ -15,9 +15,55 @@ const globalStatus = document.getElementById('global-status');
 const postoForm = document.getElementById('posto-form');
 const postosGrid = document.getElementById('postos-grid');
 const btnTest = document.getElementById('btn-test');
-const alertaForm = document.getElementById('alerta-form');
-const alertasList = document.getElementById('alertas-list');
-const alertaInput = document.getElementById('alerta-numero');
+
+// Gerenciamento de Números no Modal
+const inputNovoNumero = document.getElementById('novo-numero-posto');
+const btnAddNumero = document.getElementById('btn-add-numero-posto');
+const listaNumerosPosto = document.getElementById('lista-numeros-posto');
+let numerosAtuaisPosto = [];
+
+function MascaraBR(num) {
+    let n = num.replace(/\D/g, '');
+    if (n.startsWith('55')) n = n.substring(2);
+    if (n.length === 11) {
+        return `(${n.substring(0, 2)}) ${n.substring(2, 7)}-${n.substring(7)}`;
+    } else if (n.length === 10) {
+        return `(${n.substring(0, 2)}) ${n.substring(2, 6)}-${n.substring(6)}`;
+    }
+    return num;
+}
+
+function atualizarListaNumerosModal() {
+    if (!listaNumerosPosto) return;
+    listaNumerosPosto.innerHTML = '';
+    numerosAtuaisPosto.forEach(num => {
+        const div = document.createElement('div');
+        div.className = 'alert-item';
+        div.style.marginBottom = '0.5rem';
+        div.innerHTML = `
+            <span style="font-size: 0.75rem;">${MascaraBR(num)}</span>
+            <button onclick="removerNumeroPosto('${num}')" type="button" style="background: none; color: #fb7185; cursor: pointer; padding: 0; font-size: 1rem;">&times;</button>
+        `;
+        listaNumerosPosto.appendChild(div);
+    });
+}
+
+window.removerNumeroPosto = (num) => {
+    numerosAtuaisPosto = numerosAtuaisPosto.filter(n => n !== num);
+    atualizarListaNumerosModal();
+};
+
+if (btnAddNumero) {
+    btnAddNumero.onclick = () => {
+        let num = inputNovoNumero.value.replace(/\D/g, '');
+        if (num.length >= 10 && num.length <= 11) num = '55' + num;
+        if (num && !numerosAtuaisPosto.includes(num)) {
+            numerosAtuaisPosto.push(num);
+            atualizarListaNumerosModal();
+            inputNovoNumero.value = '';
+        }
+    };
+}
 
 // --- WhatsApp Events ---
 socket.on('qr', (qr) => {
@@ -114,7 +160,6 @@ if (loginForm) {
             localStorage.setItem('sinc_token', data.token);
             checkAuth(); // Chama a função para atualizar a UI
             carregarPostos();
-            carregarAlertas();
         } else {
             alert('❌ Credenciais incorretas!');
         }
@@ -336,6 +381,10 @@ async function removerPosto(id) {
         carregarPostos();
     }
 }
+
+// Inicialização
+checkAuth();
+carregarPostos();
 
 // --- Alertas Management ---
 function MascaraBR(num) {

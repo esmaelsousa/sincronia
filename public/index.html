@@ -75,6 +75,20 @@
                             <input type="time" id="alerta_fim" value="22:00">
                         </div>
                     </div>
+
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.8rem;">Destinatários
+                            de WhatsApp</label>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <input type="text" id="novo-numero-posto" placeholder="DDD + Número" style="flex: 1;">
+                            <button type="button" id="btn-add-numero-posto" class="secondary"
+                                style="padding: 0 1rem;">+</button>
+                        </div>
+                        <div id="lista-numeros-posto" class="hosts-list" style="max-height: 120px; overflow-y: auto;">
+                            <!-- Números do posto específico aqui -->
+                        </div>
+                    </div>
                     <div class="actions" style="margin-top: 2rem;">
                         <button type="button" id="btn-test" class="secondary">TESTAR CONEXÃO</button>
                         <button type="submit" id="btn-save-posto" class="primary">SALVAR CONFIGURAÇÃO</button>
