@@ -58,6 +58,33 @@ function lerAlertas() {
     }
 }
 
+// --- Estabilização Docker Chromium ---
+function limparLocksChromium() {
+    const sessionPath = path.join(DATA_DIR, 'session');
+    if (fs.existsSync(sessionPath)) {
+        // O Chromium cria arquivos de lock que impedem o reinício
+        const lockFiles = [
+            path.join(sessionPath, 'SingletonLock'),
+            path.join(sessionPath, 'SingletonCookie'),
+            path.join(sessionPath, 'SingletonSocket')
+        ];
+
+        lockFiles.forEach(file => {
+            if (fs.existsSync(file)) {
+                try {
+                    fs.unlinkSync(file);
+                    console.log(`[DOCKER-FIX] Arquivo de lock removido: ${path.basename(file)}`);
+                } catch (e) {
+                    console.error(`[DOCKER-FIX] Falha ao remover lock ${path.basename(file)}:`, e.message);
+                }
+            }
+        });
+    }
+}
+
+// Limpa antes de carregar
+limparLocksChromium();
+
 function salvarAlertas(alertas) {
     fs.writeFileSync(ALERTAS_FILE, JSON.stringify(alertas, null, 2));
 }
@@ -66,7 +93,14 @@ function salvarAlertas(alertas) {
 const waClient = new Client({
     authStrategy: new LocalAuth({ dataPath: path.join(DATA_DIR, 'session') }),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-extensions',
+            '--no-zygote',
+            '--single-process' // Recomendado para containers pequenos
+        ],
         headless: true,
     }
 });
