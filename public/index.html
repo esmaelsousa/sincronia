@@ -56,7 +56,7 @@
                     </div>
                     <div class="grid">
                         <div style="display: flex; flex-direction: column; gap: 0.3rem;">
-                            <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Alerta após
+                            <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Alertar após
                                 (minutos)</label>
                             <input type="number" id="alerta_tempo" placeholder="Tempo (min)" value="60" required>
                         </div>
@@ -64,6 +64,17 @@
                             <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Limite GFID
                                 (Atraso)</label>
                             <input type="number" id="alerta_gfid" placeholder="GFID" value="50000" required>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                            <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Alertar a partir
+                                das</label>
+                            <input type="time" id="alerta_inicio" value="07:00">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                            <label style="font-size: 0.7rem; opacity: 0.6; padding-left: 0.5rem;">Alertar até as</label>
+                            <input type="time" id="alerta_fim" value="22:00">
                         </div>
                     </div>
                     <div class="actions" style="margin-top: 2rem;">

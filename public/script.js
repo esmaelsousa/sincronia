@@ -229,6 +229,8 @@ function prepararEdicao(id) {
                 document.getElementById('frequencia').value = p.frequencia || "5";
                 document.getElementById('alerta_tempo').value = p.alerta_tempo || "60";
                 document.getElementById('alerta_gfid').value = p.alerta_gfid || "50000";
+                document.getElementById('alerta_inicio').value = p.alerta_inicio || "07:00";
+                document.getElementById('alerta_fim').value = p.alerta_fim || "22:00";
                 editandoId = id;
             }
         });
@@ -257,6 +259,8 @@ if (postoForm) {
             frequencia: document.getElementById('frequencia').value,
             alerta_tempo: document.getElementById('alerta_tempo').value,
             alerta_gfid: document.getElementById('alerta_gfid').value,
+            alerta_inicio: document.getElementById('alerta_inicio').value,
+            alerta_fim: document.getElementById('alerta_fim').value,
         };
 
         try {

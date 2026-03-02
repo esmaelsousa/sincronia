@@ -181,12 +181,26 @@ async function verificarPosto(posto) {
         }
 
         if (temAtraso && waReady) {
-            // Controle de envio de mensagens para não floodar (máximo 1 alerta por frequência configurada)
+            // Controle de envio de mensagens para não floodar
             const agora = Date.now();
             const memorialPosto = statusMemoria[posto.id] || { ultimoAlerta: 0 };
             const freqMs = (parseInt(posto.frequencia, 10) || 5) * 60 * 1000;
 
+            // Verificação de Janela de Silêncio
+            const agoraHora = new Date().toLocaleTimeString('pt-BR', { hour12: false, hour: '2-digit', minute: '2-digit' });
+            const inicio = posto.alerta_inicio || "00:00";
+            const fim = posto.alerta_fim || "23:59";
+
+            const estaNaJanela = (inicio <= fim)
+                ? (agoraHora >= inicio && agoraHora <= fim) // Janela no mesmo dia (ex: 08:00 as 22:00)
+                : (agoraHora >= inicio || agoraHora <= fim); // Janela vira o dia (ex: 22:00 as 06:00)
+
             if (agora - memorialPosto.ultimoAlerta >= freqMs) {
+                if (!estaNaJanela) {
+                    log(`[SILENCE] ${posto.nome}: Alerta reprimido (Horário: ${agoraHora}, Janela: ${inicio}-${fim})`);
+                    return { success: true, alertas: temAtraso ? 1 : 0 };
+                }
+
                 // Formato organizado: Uma linha por terminal com bolinha e data completa
                 const msg = `🚨 *${posto.nome.toUpperCase()}*\nUltima Sincronia em:\n\n${alertasMsg.join('\n')}`;
 
