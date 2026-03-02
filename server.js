@@ -59,31 +59,25 @@ function lerAlertas() {
 }
 
 // --- Estabilização Docker Chromium ---
-function limparLocksChromium() {
-    const sessionPath = path.join(DATA_DIR, 'session');
-    if (fs.existsSync(sessionPath)) {
-        // O Chromium cria arquivos de lock que impedem o reinício
-        const lockFiles = [
-            path.join(sessionPath, 'SingletonLock'),
-            path.join(sessionPath, 'SingletonCookie'),
-            path.join(sessionPath, 'SingletonSocket')
-        ];
-
-        lockFiles.forEach(file => {
-            if (fs.existsSync(file)) {
-                try {
-                    fs.unlinkSync(file);
-                    console.log(`[DOCKER-FIX] Arquivo de lock removido: ${path.basename(file)}`);
-                } catch (e) {
-                    console.error(`[DOCKER-FIX] Falha ao remover lock ${path.basename(file)}:`, e.message);
-                }
-            }
-        });
+function limparLocksChromium(dir) {
+    if (!fs.existsSync(dir)) return;
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+        const fullPath = path.join(dir, file);
+        if (fs.lstatSync(fullPath).isDirectory()) {
+            limparLocksChromium(fullPath);
+        } else if (file === 'SingletonLock' || file === 'SingletonCookie' || file === 'SingletonSocket') {
+            try {
+                fs.unlinkSync(fullPath);
+                console.log(`[DOCKER-FIX] Removido: ${fullPath}`);
+            } catch (e) { }
+        }
     }
 }
 
-// Limpa antes de carregar
-limparLocksChromium();
+// Limpa recursivamente na inicialização
+console.log('[DOCKER-FIX] Iniciando limpeza de travas do Chromium...');
+limparLocksChromium(DATA_DIR);
 
 function salvarAlertas(alertas) {
     fs.writeFileSync(ALERTAS_FILE, JSON.stringify(alertas, null, 2));
