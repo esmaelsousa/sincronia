@@ -329,8 +329,8 @@ server.listen(PORT, async () => {
     }
 });
 
-// Cron para verificar todos os postos
-cron.schedule('0 7-19 * * *', async () => {
+// Cron para verificar todos os postos a cada 5 minutos, 24h por dia
+cron.schedule('*/5 * * * *', async () => {
     const postos = lerPostos();
     log(`Iniciando verificação agendada para ${postos.length} postos.`);
     for (const p of postos) {
