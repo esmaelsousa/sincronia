@@ -18,10 +18,55 @@
                 <h1>⚡ Sinc Autosystem</h1>
                 <p>Monitoramento Avançado de Sincronia de Dados</p>
             </div>
-            <div id="stats-summary" style="text-align: right;">
-                <span id="global-status" class="status-badge online">SISTEMA ONLINE</span>
+            <div id="header-actions" style="display: flex; gap: 1rem; align-items: center;">
+                <button id="btn-open-config" class="primary pulse-btn" style="padding: 0.8rem 1.5rem;">⚙️ CONFIGURAR
+                    BANCO</button>
+                <div id="stats-summary" style="text-align: right;">
+                    <span id="global-status" class="status-badge online">SISTEMA ONLINE</span>
+                </div>
             </div>
         </header>
+
+        <!-- Overlay de Login -->
+        <div id="login-overlay" class="overlay">
+            <div class="login-card card">
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <span style="font-size: 3rem;">🔒</span>
+                    <h2>Acesso Restrito</h2>
+                    <p>Por favor, identifique-se</p>
+                </div>
+                <form id="login-form">
+                    <input type="text" id="login-user" placeholder="Usuário" required>
+                    <input type="password" id="login-pass" placeholder="Senha" required>
+                    <button type="submit" class="primary" style="width: 100%; margin-top: 1rem;">ENTRAR</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Configuração -->
+        <div id="config-modal" class="modal">
+            <div class="modal-content card">
+                <div class="modal-header">
+                    <h2 id="modal-title">Configurar Novo Banco</h2>
+                    <button id="btn-close-modal" class="close-btn">&times;</button>
+                </div>
+                <form id="posto-form">
+                    <input type="text" id="nome" placeholder="Nome do Posto" required>
+                    <div class="grid">
+                        <input type="text" id="host" placeholder="Endereço Host (IP ou Domínio)" required>
+                        <input type="number" id="port" placeholder="Porta" value="5432" required>
+                    </div>
+                    <input type="text" id="user" placeholder="Usuário do Banco" required>
+                    <input type="password" id="password" placeholder="Senha do Banco" required>
+                    <input type="text" id="database" placeholder="Nome do Banco de Dados" required>
+                    <div class="actions" style="margin-top: 2rem;">
+                        <button type="button" id="btn-test" class="secondary">TESTAR CONEXÃO</button>
+                        <button type="submit" id="btn-save-posto" class="primary">SALVAR CONFIGURAÇÃO</button>
+                        <button type="button" id="btn-cancel-posto" class="danger">CANCELAR</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <main>
             <div class="sidebar">
@@ -39,23 +84,7 @@
                     </div>
                 </section>
 
-                <section id="add-posto" class="card">
-                    <h2>Configurar Posto</h2>
-                    <form id="posto-form">
-                        <input type="text" id="nome" placeholder="Nome do Posto" required>
-                        <div class="grid">
-                            <input type="text" id="host" placeholder="Endereço Host" required>
-                            <input type="number" id="port" placeholder="Porta" value="5432" required>
-                        </div>
-                        <input type="text" id="user" placeholder="Usuário" required>
-                        <input type="password" id="password" placeholder="Senha" required>
-                        <input type="text" id="database" placeholder="Nome do Banco de Dados" required>
-                        <div class="actions">
-                            <button type="button" id="btn-test" class="secondary">Testar</button>
-                            <button type="submit" class="primary">Salvar</button>
-                        </div>
-                    </form>
-                </section>
+
 
                 <section id="alertas-section" class="card">
                     <h2>Destinatários</h2>

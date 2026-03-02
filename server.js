@@ -227,6 +227,21 @@ app.delete('/api/postos/:id', (req, res) => {
     res.json({ success: true });
 });
 
+// --- Segurança ---
+const CREDENTIALS = {
+    user: 'office',
+    pass: '@Office820439La'
+};
+
+app.post('/api/login', (req, res) => {
+    const { user, pass } = req.body;
+    if (user === CREDENTIALS.user && pass === CREDENTIALS.pass) {
+        res.json({ success: true, token: Buffer.from(`${user}:${pass}`).toString('base64') });
+    } else {
+        res.status(401).json({ success: false, error: 'Credenciais inválidas' });
+    }
+});
+
 // --- Endpoints Alertas ---
 app.get('/api/alertas', (req, res) => res.json(lerAlertas()));
 

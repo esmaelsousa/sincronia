@@ -80,12 +80,84 @@ socket.on('log', (msg) => {
     }
 });
 
-// --- Postos CRUD ---
+// --- Auth System ---
+const loginOverlay = document.getElementById('login-overlay');
+const loginForm = document.getElementById('login-form');
+
+function checkAuth() {
+    const token = localStorage.getItem('sinc_token');
+    if (token) {
+        loginOverlay.style.display = 'none';
+        socket.emit('auth', token);
+    } else {
+        loginOverlay.style.display = 'flex';
+    }
+}
+
+loginForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const user = document.getElementById('login-user').value;
+    const pass = document.getElementById('login-pass').value;
+
+    const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, pass })
+    });
+
+    if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('sinc_token', data.token);
+        loginOverlay.style.display = 'none';
+        carregarPostos();
+        carregarAlertas();
+    } else {
+        alert('❌ Credenciais incorretas!');
+    }
+};
+
+// --- Modal Config ---
+const configModal = document.getElementById('config-modal');
+const btnOpenConfig = document.getElementById('btn-open-config');
+const btnCloseModal = document.getElementById('btn-close-modal');
+const btnCancelPosto = document.getElementById('btn-cancel-posto');
+const modalTitle = document.getElementById('modal-title');
+
+function abrirModal(id = null) {
+    if (id) {
+        modalTitle.textContent = 'Editar Configurações';
+        prepararEdicao(id);
+    } else {
+        modalTitle.textContent = 'Configurar Novo Banco';
+        cancelarEdicao();
+    }
+    configModal.style.display = 'flex';
+}
+
+function fecharModal() {
+    configModal.style.display = 'none';
+    cancelarEdicao();
+}
+
+btnOpenConfig.onclick = () => abrirModal();
+btnCloseModal.onclick = fecharModal;
+btnCancelPosto.onclick = fecharModal;
+
+window.onclick = (event) => {
+    if (event.target == configModal) fecharModal();
+};
+
+// --- Postos CRUD (Extended) ---
 async function carregarPostos() {
-    const res = await fetch('/api/postos');
-    const postos = await res.json();
-    totalPostosSpan.textContent = `${postos.length} POSTOS CADASTRADOS`;
-    renderPostos(postos);
+    try {
+        const res = await fetch('/api/postos');
+        if (res.status === 401) return checkAuth();
+        const postos = await res.json();
+        totalPostosSpan.textContent = `${postos.length} POSTOS CADASTRADOS`;
+        renderPostos(postos);
+    } catch (e) {
+        console.error('Erro ao carregar postos:', e);
+    }
 }
 
 function renderPostos(postos) {
@@ -111,7 +183,7 @@ function renderPostos(postos) {
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: auto;">
-                <button onclick="prepararEdicao('${p.id}')" class="secondary" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">EDITAR</button>
+                <button onclick="abrirModal('${p.id}')" class="secondary" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">⚙️ EDITAR</button>
                 <button onclick="removerPosto('${p.id}')" class="danger" style="padding: 0.4rem 0.6rem; font-size: 0.7rem;">REMOVER</button>
             </div>
         `;
@@ -133,14 +205,7 @@ function prepararEdicao(id) {
                 document.getElementById('user').value = p.user;
                 document.getElementById('password').value = p.password;
                 document.getElementById('database').value = p.database;
-
                 editandoId = id;
-                const btnSubmit = postoForm.querySelector('button[type="submit"]');
-                btnSubmit.textContent = 'Atualizar';
-                btnSubmit.className = 'primary warning-btn'; // Uma classe visual diferente
-
-                // Scroll para o formulário
-                document.getElementById('add-posto').scrollIntoView({ behavior: 'smooth' });
             }
         });
 }
@@ -148,9 +213,6 @@ function prepararEdicao(id) {
 function cancelarEdicao() {
     editandoId = null;
     postoForm.reset();
-    const btnSubmit = postoForm.querySelector('button[type="submit"]');
-    btnSubmit.textContent = 'Salvar';
-    btnSubmit.className = 'primary';
 }
 
 postoForm.onsubmit = async (e) => {
@@ -180,12 +242,12 @@ postoForm.onsubmit = async (e) => {
         });
 
         if (res.ok) {
-            alert(editandoId ? '✅ Posto atualizado com sucesso!' : '✅ Posto configurado com sucesso!');
-            cancelarEdicao();
+            alert(editandoId ? '✅ Posto atualizado!' : '✅ Posto salvo!');
+            fecharModal();
             carregarPostos();
         }
     } catch (err) {
-        alert('❌ Erro ao salvar posto.');
+        alert('❌ Erro de rede ou servidor offline.');
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -316,5 +378,6 @@ socket.on('status_posto', (data) => {
 });
 
 // Init
+checkAuth();
 carregarPostos();
 carregarAlertas();
