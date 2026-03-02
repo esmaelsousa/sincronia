@@ -151,8 +151,8 @@ async function verificarPosto(posto) {
         const dataAtual = new Date();
 
         // Parâmetros configuráveis
-        const limiteTempoMin = parseInt(posto.alerta_tempo, 10) || 60;
-        const limiteGFID = parseInt(posto.alerta_gfid, 10) || 50000;
+        const limiteTempoMin = parseInt(posto.alerta_tempo || 60, 10);
+        const limiteGFID = parseInt(posto.alerta_gfid || 50000, 10);
         const limiteTempoMs = limiteTempoMin * 60 * 1000;
 
         let alertasMsg = [];
@@ -161,13 +161,19 @@ async function verificarPosto(posto) {
         for (const row of res.rows) {
             const atraso = Number(row.atraso);
             const tsDate = new Date(row.ts);
-            const diffMs = dataAtual - tsDate;
+            const diffMs = Math.max(0, dataAtual - tsDate);
 
-            const estaAtrasado = atraso > limiteGFID || diffMs > limiteTempoMs;
+            const atrasoTempoUltrapassado = diffMs > limiteTempoMs;
+            const atrasoGFIDUltrapassado = atraso > limiteGFID;
+            const estaAtrasado = atrasoTempoUltrapassado || atrasoGFIDUltrapassado;
+
+            if (estaAtrasado) {
+                log(`[ALERT-DEBUG] ${posto.nome} - ${row.nome || 'Host'}: RED por ${atrasoTempoUltrapassado ? 'Tempo' : 'GFID'}. Atraso: ${atraso} (limite ${limiteGFID}), Tempo: ${Math.floor(diffMs / 60000)}min (limite ${limiteTempoMin}min)`, 'WARNING');
+            }
 
             const icon = estaAtrasado ? '🔴' : '🟢';
             const dataHora = tsDate.toLocaleString('pt-BR');
-            const atrasoNum = Number(row.atraso).toLocaleString('pt-BR');
+            const atrasoNum = atraso.toLocaleString('pt-BR');
             alertasMsg.push(`${icon} *${(row.nome || 'Terminal').toUpperCase()}* | Atraso: ${atrasoNum} | Data: ${dataHora} .-`);
 
             if (estaAtrasado) temAtraso = true;
