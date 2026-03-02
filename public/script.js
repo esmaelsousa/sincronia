@@ -220,7 +220,8 @@ btnTest.onclick = async () => {
             alert(result.error || '❌ Erro na conexão.');
         }
     } catch (e) {
-        alert('❌ Erro de rede ou servidor offline.');
+        console.error('Erro de rede detalhado:', e);
+        alert(`❌ Erro de rede: ${e.message}\nVerifique se o servidor está online no IP:3000.`);
     } finally {
         btnTest.textContent = originalText;
         btnTest.disabled = false;
