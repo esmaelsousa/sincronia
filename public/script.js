@@ -86,38 +86,40 @@ const loginForm = document.getElementById('login-form');
 
 function checkAuth() {
     const token = localStorage.getItem('sinc_token');
+    const container = document.querySelector('.container');
     if (token) {
-        loginOverlay.style.display = 'none';
-        document.querySelector('.container').style.display = 'block';
+        if (loginOverlay) loginOverlay.style.display = 'none';
+        if (container) container.style.display = 'block';
         socket.emit('auth', token);
     } else {
-        loginOverlay.style.display = 'flex';
-        document.querySelector('.container').style.display = 'none';
+        if (loginOverlay) loginOverlay.style.display = 'flex';
+        if (container) container.style.display = 'none';
     }
 }
 
-loginForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const user = document.getElementById('login-user').value;
-    const pass = document.getElementById('login-pass').value;
+if (loginForm) {
+    loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const user = document.getElementById('login-user').value;
+        const pass = document.getElementById('login-pass').value;
 
-    const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, pass })
-    });
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user, pass })
+        });
 
-    if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('sinc_token', data.token);
-        loginOverlay.style.display = 'none';
-        document.querySelector('.container').style.display = 'block'; // Mostra o conteúdo
-        carregarPostos();
-        carregarAlertas();
-    } else {
-        alert('❌ Credenciais incorretas!');
-    }
-};
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('sinc_token', data.token);
+            checkAuth(); // Chama a função para atualizar a UI
+            carregarPostos();
+            carregarAlertas();
+        } else {
+            alert('❌ Credenciais incorretas!');
+        }
+    };
+}
 
 // --- Logout ---
 const btnLogout = document.getElementById('btn-logout');
@@ -125,7 +127,7 @@ if (btnLogout) {
     btnLogout.onclick = () => {
         if (confirm('Deseja realmente sair do sistema?')) {
             localStorage.removeItem('sinc_token');
-            location.reload(); // Recarrega para voltar à tela de login
+            location.reload();
         }
     };
 }
@@ -230,81 +232,85 @@ function cancelarEdicao() {
     postoForm.reset();
 }
 
-postoForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const btn = e.target.querySelector('button[type="submit"]');
-    const originalText = btn.textContent;
-    btn.textContent = 'Salvando...';
-    btn.disabled = true;
+if (postoForm) {
+    postoForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.textContent = 'Salvando...';
+        btn.disabled = true;
 
-    const data = {
-        nome: document.getElementById('nome').value,
-        host: document.getElementById('host').value,
-        port: document.getElementById('port').value,
-        user: document.getElementById('user').value,
-        password: document.getElementById('password').value,
-        database: document.getElementById('database').value,
-        frequencia: document.getElementById('frequencia').value,
-    };
+        const data = {
+            nome: document.getElementById('nome').value,
+            host: document.getElementById('host').value,
+            port: document.getElementById('port').value,
+            user: document.getElementById('user').value,
+            password: document.getElementById('password').value,
+            database: document.getElementById('database').value,
+            frequencia: document.getElementById('frequencia').value,
+        };
 
-    try {
-        const url = editandoId ? `/api/postos/${editandoId}` : '/api/postos';
-        const method = editandoId ? 'PUT' : 'POST';
+        try {
+            const url = editandoId ? `/api/postos/${editandoId}` : '/api/postos';
+            const method = editandoId ? 'PUT' : 'POST';
 
-        const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
 
-        if (res.ok) {
-            alert(editandoId ? '✅ Posto atualizado!' : '✅ Posto salvo!');
-            fecharModal();
-            carregarPostos();
+            if (res.ok) {
+                alert(editandoId ? '✅ Posto atualizado!' : '✅ Posto salvo!');
+                fecharModal();
+                carregarPostos();
+            }
+        } catch (err) {
+            alert('❌ Erro de rede ou servidor offline.');
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
         }
-    } catch (err) {
-        alert('❌ Erro de rede ou servidor offline.');
-    } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-    }
-};
-
-btnTest.onclick = async () => {
-    const data = {
-        host: document.getElementById('host').value,
-        port: document.getElementById('port').value,
-        user: document.getElementById('user').value,
-        password: document.getElementById('password').value,
-        database: document.getElementById('database').value,
     };
+}
 
-    const originalText = btnTest.textContent;
-    btnTest.textContent = 'Testando...';
-    btnTest.disabled = true;
+if (btnTest) {
+    btnTest.onclick = async () => {
+        const data = {
+            host: document.getElementById('host').value,
+            port: document.getElementById('port').value,
+            user: document.getElementById('user').value,
+            password: document.getElementById('password').value,
+            database: document.getElementById('database').value,
+        };
 
-    try {
-        const res = await fetch('/api/test-connection', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+        const originalText = btnTest.textContent;
+        btnTest.textContent = 'Testando...';
+        btnTest.disabled = true;
 
-        const result = await res.json();
+        try {
+            const res = await fetch('/api/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
 
-        if (res.ok && result.success) {
-            alert('✅ Conexão bem sucedida!');
-        } else {
-            alert(result.error || '❌ Erro na conexão.');
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                alert('✅ Conexão bem sucedida!');
+            } else {
+                alert(result.error || '❌ Erro na conexão.');
+            }
+        } catch (e) {
+            console.error('Erro de rede detalhado:', e);
+            alert(`❌ Erro de rede: ${e.message}\nVerifique se o servidor está online no IP:3000.`);
+        } finally {
+            btnTest.textContent = originalText;
+            btnTest.disabled = false;
         }
-    } catch (e) {
-        console.error('Erro de rede detalhado:', e);
-        alert(`❌ Erro de rede: ${e.message}\nVerifique se o servidor está online no IP:3000.`);
-    } finally {
-        btnTest.textContent = originalText;
-        btnTest.disabled = false;
-    }
-};
+    };
+}
 
 async function removerPosto(id) {
     if (confirm('Deseja remover este posto do monitoramento?')) {
@@ -315,9 +321,13 @@ async function removerPosto(id) {
 
 // --- Alertas Management ---
 async function carregarAlertas() {
-    const res = await fetch('/api/alertas');
-    const alertas = await res.json();
-    renderAlertas(alertas);
+    try {
+        const res = await fetch('/api/alertas');
+        if (res.ok) {
+            const alertas = await res.json();
+            renderAlertas(alertas);
+        }
+    } catch (e) { }
 }
 
 function renderAlertas(alertas) {
@@ -337,22 +347,24 @@ function renderAlertas(alertas) {
     });
 }
 
-alertaForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const numero = alertaInput.value.trim();
-    if (!numero) return;
+if (alertaForm) {
+    alertaForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const numero = alertaInput.value.trim();
+        if (!numero) return;
 
-    const res = await fetch('/api/alertas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numero })
-    });
+        const res = await fetch('/api/alertas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ numero })
+        });
 
-    if (res.ok) {
-        alertaInput.value = '';
-        carregarAlertas();
-    }
-};
+        if (res.ok) {
+            alertaInput.value = '';
+            carregarAlertas();
+        }
+    };
+}
 
 async function removerAlerta(numero) {
     if (confirm(`Remover ${numero}?`)) {
@@ -395,5 +407,7 @@ socket.on('status_posto', (data) => {
 
 // Init
 checkAuth();
-carregarPostos();
-carregarAlertas();
+if (localStorage.getItem('sinc_token')) {
+    carregarPostos();
+    carregarAlertas();
+}
