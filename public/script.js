@@ -119,6 +119,17 @@ loginForm.onsubmit = async (e) => {
     }
 };
 
+// --- Logout ---
+const btnLogout = document.getElementById('btn-logout');
+if (btnLogout) {
+    btnLogout.onclick = () => {
+        if (confirm('Deseja realmente sair do sistema?')) {
+            localStorage.removeItem('sinc_token');
+            location.reload(); // Recarrega para voltar à tela de login
+        }
+    };
+}
+
 // --- Modal Config ---
 const configModal = document.getElementById('config-modal');
 const btnOpenConfig = document.getElementById('btn-open-config');
