@@ -206,7 +206,7 @@ async function verificarPosto(posto) {
                 // Formato organizado: Uma linha por terminal com bolinha e data completa
                 const msg = `🚨 *${posto.nome.toUpperCase()}*\nUltima Sincronia em:\n\n${alertasMsg.join('\n')}`;
 
-                const numbers = lerAlertas();
+                const numbers = posto.alertas || [];
                 for (const n of numbers) {
                     let num = n.replace(/\D/g, ''); // Limpa tudo que não é número
                     if (!num) continue;
