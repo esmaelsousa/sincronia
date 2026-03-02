@@ -84,18 +84,6 @@ socket.on('log', (msg) => {
 const loginOverlay = document.getElementById('login-overlay');
 const loginForm = document.getElementById('login-form');
 
-if (res.ok) {
-    const data = await res.json();
-    localStorage.setItem('sinc_token', data.token);
-    loginOverlay.style.display = 'none';
-    document.querySelector('.container').style.display = 'block'; // Mostra o conteúdo
-    carregarPostos();
-    carregarAlertas();
-} else {
-    alert('❌ Credenciais incorretas!');
-}
-};
-
 function checkAuth() {
     const token = localStorage.getItem('sinc_token');
     if (token) {
@@ -107,6 +95,29 @@ function checkAuth() {
         document.querySelector('.container').style.display = 'none';
     }
 }
+
+loginForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const user = document.getElementById('login-user').value;
+    const pass = document.getElementById('login-pass').value;
+
+    const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, pass })
+    });
+
+    if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('sinc_token', data.token);
+        loginOverlay.style.display = 'none';
+        document.querySelector('.container').style.display = 'block';
+        carregarPostos();
+        carregarAlertas();
+    } else {
+        alert('❌ Credenciais incorretas!');
+    }
+};
 
 // --- Modal Config ---
 const configModal = document.getElementById('config-modal');
@@ -131,9 +142,9 @@ function fecharModal() {
     cancelarEdicao();
 }
 
-btnOpenConfig.onclick = () => abrirModal();
-btnCloseModal.onclick = fecharModal;
-btnCancelPosto.onclick = fecharModal;
+if (btnOpenConfig) btnOpenConfig.onclick = () => abrirModal();
+if (btnCloseModal) btnCloseModal.onclick = fecharModal;
+if (btnCancelPosto) btnCancelPosto.onclick = fecharModal;
 
 window.onclick = (event) => {
     if (event.target == configModal) fecharModal();
@@ -222,6 +233,7 @@ postoForm.onsubmit = async (e) => {
         user: document.getElementById('user').value,
         password: document.getElementById('password').value,
         database: document.getElementById('database').value,
+        frequencia: document.getElementById('frequencia').value,
     };
 
     try {
