@@ -28,21 +28,6 @@
             </div>
         </header>
 
-        <!-- Overlay de Login -->
-        <div id="login-overlay" class="overlay">
-            <div class="login-card card">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <span style="font-size: 3rem;">🔒</span>
-                    <h2>Acesso Restrito</h2>
-                    <p>Por favor, identifique-se</p>
-                </div>
-                <form id="login-form">
-                    <input type="text" id="login-user" placeholder="Usuário" required>
-                    <input type="password" id="login-pass" placeholder="Senha" required>
-                    <button type="submit" class="primary" style="width: 100%; margin-top: 1rem;">ENTRAR</button>
-                </form>
-            </div>
-        </div>
 
         <!-- Modal de Configuração -->
         <div id="config-modal" class="modal">
@@ -128,6 +113,27 @@
             <h2>Consola do Sistema</h2>
             <div id="logs-container"></div>
         </section>
+    </div>
+
+    <div id="login-overlay" class="overlay">
+        <div class="login-card card">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <span style="font-size: 3rem;">🔒</span>
+                <h2>Acesso Restrito</h2>
+                <p>Por favor, identifique-se</p>
+            </div>
+            <form id="login-form">
+                <input type="text" id="login-user" placeholder="Usuário" required>
+                <input type="password" id="login-pass" placeholder="Senha" required>
+                <button type="submit" class="primary" style="width: 100%; margin-top: 1rem;">ENTRAR</button>
+            </form>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="mailto:esmaelsousa@gmail.com?subject=Redefinição de Senha - Sinc Autosystem"
+                    style="color: var(--text-dim); font-size: 0.8rem; text-decoration: none;">
+                    Esqueceu a senha? Solicitar redefinição
+                </a>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>

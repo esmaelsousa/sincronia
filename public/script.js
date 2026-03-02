@@ -111,7 +111,7 @@ loginForm.onsubmit = async (e) => {
         const data = await res.json();
         localStorage.setItem('sinc_token', data.token);
         loginOverlay.style.display = 'none';
-        document.querySelector('.container').style.display = 'block';
+        document.querySelector('.container').style.display = 'block'; // Mostra o conteúdo
         carregarPostos();
         carregarAlertas();
     } else {
