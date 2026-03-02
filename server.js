@@ -166,8 +166,8 @@ async function verificarPosto(posto) {
             const estaAtrasado = atraso > limiteGFID || diffMs > limiteTempoMs;
 
             const icon = estaAtrasado ? '🔴' : '🟢';
-            const formatado = tsDate.toLocaleTimeString('pt-BR');
-            alertasMsg.push(`${icon} *${row.nome || 'Terminal'}*: ${formatado}`);
+            const dataHora = tsDate.toLocaleString('pt-BR').replace(',', ' as');
+            alertasMsg.push(`${icon} *${row.nome || 'Terminal'}*: ${dataHora}`);
 
             if (estaAtrasado) temAtraso = true;
             row.online = !estaAtrasado;
@@ -180,8 +180,8 @@ async function verificarPosto(posto) {
             const freqMs = (parseInt(posto.frequencia, 10) || 5) * 60 * 1000;
 
             if (agora - memorialPosto.ultimoAlerta >= freqMs) {
-                // Formato organizado: Uma linha por terminal com bolinha
-                const msg = `🚨 *ALERTA: ${posto.nome.toUpperCase()}*\n\n${alertasMsg.join('\n')}`;
+                // Formato organizado: Uma linha por terminal com bolinha e data completa
+                const msg = `🚨 *${posto.nome.toUpperCase()}*\nUltima Sincronia em:\n\n${alertasMsg.join('\n')}`;
 
                 const numbers = lerAlertas();
                 for (const n of numbers) {
