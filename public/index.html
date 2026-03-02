@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinc Autosystem | Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>⚡ Sinc Autosystem</h1>
+                <p>Monitoramento Avançado de Sincronia de Dados</p>
+            </div>
+            <div id="stats-summary" style="text-align: right;">
+                <span id="global-status" class="status-badge online">SISTEMA ONLINE</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="sidebar">
+                <section id="wa-section" class="card">
+                    <div id="wa-status-container">
+                        <h2>WhatsApp</h2>
+                        <div id="wa-status" class="status-badge offline">Desconectado</div>
+                    </div>
+                    <div id="qrcode-container">
+                        <p style="text-align: center; opacity: 0.5;">Iniciando sistema...</p>
+                    </div>
+                    <div class="wa-actions">
+                        <button id="btn-wa-reset" class="secondary" title="Gerar novo QR Code">Novo QR</button>
+                        <button id="btn-wa-disconnect" class="danger" title="Desconectar número atual">Sair</button>
+                    </div>
+                </section>
+
+                <section id="add-posto" class="card">
+                    <h2>Configurar Posto</h2>
+                    <form id="posto-form">
+                        <input type="text" id="nome" placeholder="Nome do Posto" required>
+                        <div class="grid">
+                            <input type="text" id="host" placeholder="Endereço Host" required>
+                            <input type="number" id="port" placeholder="Porta" value="5432" required>
+                        </div>
+                        <input type="text" id="user" placeholder="Usuário" required>
+                        <input type="password" id="password" placeholder="Senha" required>
+                        <input type="text" id="database" placeholder="Nome do Banco de Dados" required>
+                        <div class="actions">
+                            <button type="button" id="btn-test" class="secondary">Testar</button>
+                            <button type="submit" class="primary">Salvar</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section id="alertas-section" class="card">
+                    <h2>Destinatários</h2>
+                    <form id="alerta-form">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="alerta-numero" placeholder="55..." style="flex: 1;" required>
+                            <button type="submit" class="primary" style="padding: 0 1rem;">+</button>
+                        </div>
+                    </form>
+                    <div id="alertas-list" class="hosts-list" style="margin-top: 1.5rem;">
+                        <!-- Números de alerta serão carregados aqui -->
+                    </div>
+                </section>
+            </div>
+
+            <div class="content">
+                <section id="postos-list" class="card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="margin: 0;">Monitoria de Postos</h2>
+                        <span id="total-postos" style="font-size: 0.8rem; font-weight: 700; opacity: 0.5;"></span>
+                    </div>
+                    <div id="postos-grid">
+                        <!-- Postos serão carregados aqui -->
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <section id="logs-section" class="card" style="margin-top: 1.5rem;">
+            <h2>Consola do Sistema</h2>
+            <div id="logs-container"></div>
+        </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

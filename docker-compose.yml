@@ -1,0 +1,12 @@
+services:
+  sinc-autosystem:
+    build: .
+    container_name: sinc_autosystem
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./.wwebjs_auth:/usr/src/app/.wwebjs_auth
+      - ./data:/usr/src/app/data
+    environment:
+      - WEB_PORT=3000
